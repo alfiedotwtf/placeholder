@@ -1,0 +1,16 @@
+[package]
+name        = "placeholder"
+version     = "0.1.0"
+description = "A Placeholder Templating Engine without the complexity"
+authors     = ["Alfie John <alfie@alfie.wtf>"]
+
+documentation = "https://docs.rs/placeholder/"
+homepage      = "https://crates.io/crates/placeholder"
+repository    = "https://github.com/alfiedotwtf/placeholder"
+readme        = "README.md"
+license       = "GPL-2.0-only"
+edition       = "2021"
+
+[dependencies]
+lazy_static = "1.4.0"
+regex       = "1.5.4"
