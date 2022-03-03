@@ -1,6 +1,6 @@
 [package]
 name        = "placeholder"
-version     = "0.1.2"
+version     = "1.1.3"
 description = "A Placeholder Templating Engine without the complexity"
 authors     = ["Alfie John <alfie@alfie.wtf>"]
 

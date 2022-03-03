@@ -1,39 +1,133 @@
+//! Placeholder - A Placeholder Templating Engine without the complexity
+//!
+//! # Example 1
+//!
+//! ```
+//! use placeholder::render;
+//! use std::collections::HashMap;
+//!
+//! fn main() {
+//!   let template = String::from("<h1>{greet} {name}</h1><p>Do you like {food}?</p>");
+//!
+//!   let mut values = HashMap::new();
+//!   values.insert(String::from("greet"), String::from("Hello"));
+//!   values.insert(String::from("name"), String::from("Homer"));
+//!   values.insert(String::from("food"), String::from("Donuts"));
+//!
+//!   assert!(render(&template, &values)
+//!     == Ok(String::from("<h1>Hello Homer</h1><p>Do you like Donuts?</p>")));
+//!
+//! }
+//! ```
+//!
+//! # Example 2 (missing placeholder values)
+//!
+//! ```
+//! use placeholder::render;
+//! use std::collections::HashMap;
+//!
+//! fn main() {
+//!   let template = String::from("<h1>{greet} {name}</h1>");
+//!
+//!   let mut values = HashMap::new();
+//!   values.insert(String::from("greet"), String::from("Hello"));
+//!
+//!   assert!(render(&template, &values)
+//!     == Err(String::from("name")));
+//! }
+//! ```
+
 use lazy_static::lazy_static;
 use regex::Regex;
 use std::collections::HashMap;
 
 lazy_static! {
+    // Compile these once at startup
     static ref MATCH_START: Regex = Regex::new(r"^[{](\w+)[}]").unwrap();
     static ref MATCH_OTHER: Regex = Regex::new(r"[^{][{](\w+)[}]").unwrap();
 }
 
-pub fn render(text: &str, values: &HashMap<String, String>) -> Result<String, String> {
-    let mut text_replaced = match MATCH_START.captures(text) {
-        None => text.to_string(),
+/// Render the template with placeholder values
+///
+/// # Parameters
+///
+/// `template` is the template text containing placeholders in the form `{name}`
+///
+/// `values` is the HashMap containing placeholder values to replace within `template`
+///
+/// # Returns
+///
+/// `Ok(output)` is the template text with all its placeholders replaced with their corresponding
+/// placeholder values
+///
+/// `Err(name)` is the name of the placeholder missing from `values`
+///
+/// # Example 1
+///
+/// ```
+/// use placeholder::render;
+/// use std::collections::HashMap;
+///
+/// fn main() {
+///   let template = String::from("<h1>{greet} {name}</h1><p>Do you like {food}?</p>");
+///
+///   let mut values = HashMap::new();
+///   values.insert(String::from("greet"), String::from("Hello"));
+///   values.insert(String::from("name"), String::from("Homer"));
+///   values.insert(String::from("food"), String::from("Donuts"));
+///
+///   assert!(render(&template, &values)
+///     == Ok(String::from("<h1>Hello Homer</h1><p>Do you like Donuts?</p>")));
+///
+/// }
+/// ```
+///
+/// # Example 2 (missing placeholder values)
+///
+/// ```
+/// use placeholder::render;
+/// use std::collections::HashMap;
+///
+/// fn main() {
+///   let template = String::from("<h1>{greet} {name}</h1>");
+///
+///   let mut values = HashMap::new();
+///   values.insert(String::from("greet"), String::from("Hello"));
+///
+///   assert!(render(&template, &values)
+///     == Err(String::from("name")));
+/// }
+/// ```
+pub fn render(template: &str, values: &HashMap<String, String>) -> Result<String, String> {
+    // Instead of a doing this all within a single regular expression, we split it into two so that
+    // we're not branching per iteration for a possible "start of string" placeholder
+
+    let mut output = match MATCH_START.captures(template) {
+        None => template.to_string(),
         Some(capture) => match capture.get(1) {
             None => panic!("at the disco"),
             Some(key) => match values.get(key.as_str()) {
                 None => return Err(key.as_str().to_string()),
                 Some(value) => Regex::new(format!("^[{{]{}[}}]", key.as_str()).as_str())
                     .unwrap()
-                    .replace(text, value)
+                    .replace(template, value)
                     .to_string(),
             },
         },
     };
 
     loop {
-        match MATCH_OTHER.captures(&text_replaced) {
+        match MATCH_OTHER.captures(&output) {
             None => break,
             Some(capture) => match capture.get(1) {
                 None => panic!("at the disco"),
                 Some(key) => match values.get(key.as_str()) {
                     None => return Err(key.as_str().to_string()),
                     Some(value) => {
-                        text_replaced =
+                        output =
                             Regex::new(format!("([^{{])[{{]{}[}}]", key.as_str()).as_str())
                                 .unwrap()
-                                .replace(&text_replaced, format!("${{1}}{}", value))
+                                .replace(&output, format!("${{1}}{}", value))
                                 .to_string()
                     }
                 },
@@ -41,7 +135,7 @@ pub fn render(text: &str, values: &HashMap<String, String>) -> Result<String, St
         }
     }
 
-    Ok(text_replaced)
+    Ok(output)
 }
 
 #[cfg(test)]
